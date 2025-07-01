@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Secure Password Manager & Hasher</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script>
+    function showTab(tabName) {
+      const tabs = ['hash', 'user', 'compare', 'users'];
+      tabs.forEach(function(tab) {
+        document.getElementById(tab + 'Tab').style.display = (tab === tabName) ? 'block' : 'none';
+        document.getElementById(tab + 'Button').classList.toggle('active', tab === tabName);
+      });
+    }
+
+    window.onload = function() {
+      showTab('hash');
+    };
+
+    function checkStrength(inputId, meterId) {
+      const password = document.getElementById(inputId).value;
+      const meter = document.getElementById(meterId);
+      if (!meter) return;
+
+      if (!password) {
+        meter.textContent = '';
+        meter.className = 'strength-meter';
+        return;
+      }
+
+      let strength = 0;
+      if (password.length > 5) strength++;
+      if (password.length > 8) strength++;
+      if (/[A-Z]/.test(password)) strength++;
+      if (/[0-9]/.test(password)) strength++;
+      if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+      if (strength <= 2) {
+        meter.textContent = 'Weak';
+        meter.className = 'strength-meter weak';
+      } else if (strength === 3) {
+        meter.textContent = 'Medium';
+        meter.className = 'strength-meter medium';
+      } else if (strength === 4) {
+        meter.textContent = 'Strong';
+        meter.className = 'strength-meter strong';
+      } else {
+        meter.textContent = 'Very Strong';
+        meter.className = 'strength-meter very-strong';
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Secure Password Manager & Hasher</h1>
+
+  <div class="tabs">
+    <button id="hashButton" onclick="showTab('hash')">Hash / Verify</button>
+    <button id="userButton" onclick="showTab('user')">Register / Login</button>
+    <button id="compareButton" onclick="showTab('compare')">Compare</button>
+    <button id="usersButton" onclick="showTab('users')">Users</button>
+  </div>
+
+  {% if result %}
+    <div class="result">
+      <h3>Result:</h3>
+      <p>{{ result }}</p>
+    </div>
+  {% endif %}
+
+  <!-- Hash / Verify Tab -->
+  <div id="hashTab" class="tabContent">
+    <form method="POST" class="card">
+      <h2>Hash / Verify</h2>
+      <label>Password:</label>
+      <input type="password" name="password" id="hashPassword" oninput="checkStrength('hashPassword', 'hashStrength')" required>
+      <div id="hashStrength" class="strength-meter"></div>
+
+      <label>Stored Hash (for verification):</label>
+      <input type="text" name="stored_hash">
+
+      <label>Choose Algorithm:</label>
+      <select name="algorithm">
+        <option value="bcrypt" {% if selected_algo == 'bcrypt' %}selected{% endif %}>bcrypt</option>
+        <option value="argon2" {% if selected_algo == 'argon2' %}selected{% endif %}>Argon2</option>
+        <option value="sha256" {% if selected_algo == 'sha256' %}selected{% endif %}>SHA-256</option>
+      </select>
+
+      <div class="buttons">
+        <button type="submit" name="action" value="hash">Generate Hash</button>
+        <button type="submit" name="action" value="verify">Verify Password</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Register / Login Tab -->
+  <div id="userTab" class="tabContent">
+    <form method="POST" class="card">
+      <h2>Register / Login</h2>
+      <label>Username:</label>
+      <input type="text" name="username" required>
+
+      <label>Password:</label>
+      <input type="password" name="password" id="userPassword" oninput="checkStrength('userPassword', 'userStrength')" required>
+      <div id="userStrength" class="strength-meter"></div>
+
+      <label>Choose Algorithm:</label>
+      <select name="algorithm">
+        <option value="bcrypt" {% if selected_algo == 'bcrypt' %}selected{% endif %}>bcrypt</option>
+        <option value="argon2" {% if selected_algo == 'argon2' %}selected{% endif %}>Argon2</option>
+        <option value="sha256" {% if selected_algo == 'sha256' %}selected{% endif %}>SHA-256</option>
+      </select>
+
+      <div class="buttons">
+        <button type="submit" name="action" value="register">Register User</button>
+        <button type="submit" name="action" value="login">Login User</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Compare Tab -->
+  <div id="compareTab" class="tabContent">
+    <form method="POST" class="card">
+      <h2>Compare Algorithms</h2>
+      <label>Password:</label>
+      <input type="password" name="password" required>
+
+      <div class="buttons">
+        <button type="submit" name="action" value="compare">Generate All Hashes</button>
+      </div>
+    </form>
+    {% if compare_results %}
+      <div class="result">
+        <h3>Hash Comparison Results</h3>
+        <div class="algo-result">
+          <p><strong>bcrypt:</strong></p>
+          <code>{{ compare_results.bcrypt }}</code>
+          <p class="algo-desc">
+            bcrypt is a slow, adaptive hash designed to resist brute-force attacks. It automatically uses salts.
+            <br><em>Strengths:</em> Widely used, configurable work factor.
+            <br><em>Weaknesses:</em> Slower with high work factors.
+          </p>
+        </div>
+        <div class="algo-result">
+          <p><strong>argon2:</strong></p>
+          <code>{{ compare_results.argon2 }}</code>
+          <p class="algo-desc">
+            Argon2 is a modern, memory-hard password hash. Tunable to resist GPUs and ASICs.
+            <br><em>Strengths:</em> Excellent resistance to cracking.
+            <br><em>Weaknesses:</em> Newer, more complex to tune.
+          </p>
+        </div>
+        <div class="algo-result">
+          <p><strong>SHA-256:</strong></p>
+          <code>{{ compare_results.sha256 }}</code>
+          <p class="algo-desc">
+            SHA-256 is a fast, general-purpose hash—not ideal for passwords alone.
+            <br><em>Strengths:</em> Simple, standard.
+            <br><em>Weaknesses:</em> Too fast—vulnerable to brute-force if unsalted.
+          </p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Users Tab -->
+  <div id="usersTab" class="tabContent">
+    <div class="card">
+      <h2>Registered Users</h2>
+      {% if users %}
+        <table>
+          <tr><th>Username</th><th>Algorithm</th><th>Action</th></tr>
+          {% for user, data in users.items() %}
+            <tr>
+              <td>{{ user }}</td>
+              <td>{{ data.algorithm }}</td>
+              <td>
+                <form method="POST" style="margin:0;">
+                  <input type="hidden" name="delete_user" value="{{ user }}">
+                  <button type="submit" name="action" value="delete">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p>No users registered yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
