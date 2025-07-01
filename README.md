@@ -60,17 +60,6 @@ It's perfect for learning about **cryptography**, **secure authentication**, and
 
 ---
 
-## 📸 Screenshots
-
-*(Optional: Add screenshots of your UI here!)*
-
-- Hash / Verify tab with strength meter
-- Register / Login form
-- Algorithm Comparison with results
-- Users list with delete buttons
-
----
-
 ## 💻 Getting Started
 
 ### 🔹 Clone the repository
